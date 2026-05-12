@@ -239,6 +239,12 @@ Baseline choice follows **content density**, not style. Common: `18px` (dense) /
 
 Selection is automatic in Step 5 (A → B → Manual). Detailed contract: [`image-generator.md`](./image-generator.md) §3.2.
 
+> **No-API constraint** — when `IMAGE_BACKEND` is not configured and no API credentials have been provided:
+> - Default to **D** (web-sourced) for Photography and real-world scene types — `image_search.py` works key-free via Openverse / Wikimedia
+> - Default to **E** (placeholder) for abstract Background / Illustration types that don't map well to stock-photo search
+> - **C (Offline Manual Mode)** is still available for custom illustrations: `image_prompts.md` will contain paste-ready prompts the user can run in ChatGPT Pro / Midjourney / Gemini, then place the files at `project/images/<filename>`
+> - Do NOT assign `Acquire Via: ai` rows while expecting automated generation — without a configured backend they will immediately enter Offline Manual Mode for all affected rows
+
 Selections may be mixed at the row level — e.g. a deck can use C for hero illustrations while sourcing D for supporting team photos.
 
 **When selection includes B**, you must run `python3 scripts/analyze_images.py <project_path>/images` before outputting the spec, and integrate scan results into the image resource list.

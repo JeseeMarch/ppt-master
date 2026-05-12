@@ -23,6 +23,7 @@ PPT Master is an AI-driven presentation generation system. Multi-role collaborat
 ## Execution Requirements
 
 - Read [`skills/ppt-master/SKILL.md`](skills/ppt-master/SKILL.md) before starting a PPT task.
+- For this local workspace, also read [`docs/zh/local-chatgpt-claude-pro-setup.md`](docs/zh/local-chatgpt-claude-pro-setup.md). The user has ChatGPT Pro and Claude Pro subscriptions, but no API key should be assumed. Use Claude Code / Codex for the main Agent workflow, and treat scripted AI image generation as optional unless the user explicitly provides API credentials.
 - For standalone template creation, read [`skills/ppt-master/workflows/create-template.md`](skills/ppt-master/workflows/create-template.md).
 - Role-specific rules live in [`skills/ppt-master/references/`](skills/ppt-master/references/).
 - Technical SVG/PPT constraints live in [`skills/ppt-master/references/shared-standards.md`](skills/ppt-master/references/shared-standards.md).
@@ -54,7 +55,8 @@ python3 skills/ppt-master/scripts/project_manager.py validate <project_path>
 
 # Image tools and SVG quality check
 python3 skills/ppt-master/scripts/analyze_images.py <project_path>/images
-python3 skills/ppt-master/scripts/image_gen.py "prompt" --aspect_ratio 16:9 --image_size 1K -o <project_path>/images
+# Optional only when IMAGE_BACKEND and provider API credentials are configured:
+# python3 skills/ppt-master/scripts/image_gen.py "prompt" --aspect_ratio 16:9 --image_size 1K -o <project_path>/images
 python3 skills/ppt-master/scripts/svg_quality_checker.py <project_path>
 
 # Post-processing pipeline: run sequentially, one command at a time
