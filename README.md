@@ -1,6 +1,6 @@
 # PPT Master — AI generates natively editable PPTX from any document
 
-[![Version](https://img.shields.io/badge/version-v2.6.0-blue.svg)](https://github.com/hugohe3/ppt-master/releases)
+[![Version](https://img.shields.io/badge/version-v2.7.0-blue.svg)](https://github.com/hugohe3/ppt-master/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/hugohe3/ppt-master.svg)](https://github.com/hugohe3/ppt-master/stargazers)
 [![AtomGit stars](https://atomgit.com/hugohe3/ppt-master/star/badge.svg)](https://atomgit.com/hugohe3/ppt-master)
@@ -39,6 +39,8 @@ English | [中文](./README_CN.md)
 Drop in a PDF, DOCX, URL, or Markdown — get back a **natively editable PowerPoint** with real shapes, real text boxes, and real charts. Not images. Click anything and edit it.
 
 > **⚠️ PPT Master is a harness, not a complete agent.** `harness + model = agent` — the tool owns the workflow; the model sets the ceiling. To form a genuinely high-quality agent, use **Claude with a large context window (~1M tokens) + AI image generation (`gpt-image-2`)**. Other models can run the pipeline but cannot reach the same quality ceiling. If results disappoint, upgrade the model — don't blame the harness.
+
+> **Live Preview & Visual Edits** — during generation, a browser preview at `http://localhost:5050` opens automatically. Click any element, write what to change, hit **Submit annotations**, then return to the chat and say "apply my annotations" — the AI rewrites the SVG and re-exports the PPTX. Originally PPT Master was chat-only by design, but enough users asked for visual editing that we folded it in. Built on top of [@WodenJay](https://github.com/WodenJay)'s [PR #85](https://github.com/hugohe3/ppt-master/pull/85) — thank you. See [Live Preview Workflow →](./skills/ppt-master/workflows/live-preview.md).
 
 > **Template Replication** — hand the AI any `.pptx` you like and say "replicate it as a template via `/create-template`" — you get a layout set PPT Master can invoke directly. Theme colors, fonts, master/layout structure, reusable images, even sprite-sheet crop relationships are extracted straight from OOXML, so covers, chapter dividers and decoration-heavy pages all reproduce reliably. You're no longer limited to the built-in templates: a company brand deck, a client's winning template, or any high-quality reference can become a private template in your own library. See [Templates Guide →](./docs/templates-guide.md).
 

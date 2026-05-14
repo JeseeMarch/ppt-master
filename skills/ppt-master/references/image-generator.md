@@ -12,24 +12,19 @@ Role definition for the **AI image generation path**: convert each `Acquire Via:
 
 ### 1.1 Standard Output Format
 
-Every image must be emitted into `image_prompts.md` in the following block format:
+Every image becomes one entry under `items[]` in `project/images/image_prompts.json`. See §4 for the full schema and a paste-ready template.
 
-```markdown
-### Image N: {filename}
-
-| Attribute | Value |
-| --------- | ----- |
-| Purpose   | {which page / what function} |
-| Type      | {Background / Illustration / Photography / Diagram / Decorative} |
-| Dimensions | {width}x{height} ({aspect ratio}) |
-| Original description | {Reference field from the resource list} |
-
-**Prompt**:
-{subject description}, {style directive}, {color directive}, {composition directive}, {quality directive}
-
-**Alt Text**:
-> {Description for accessibility and image captions}
-```
+| Field | Required | Description |
+|---|---|---|
+| `filename` | yes | Output filename with extension, e.g. `cover_bg.png` |
+| `prompt` | yes | Subject + style + color + composition + quality, assembled per §1.2 |
+| `aspect_ratio` | yes | One of §1.5; passed to `image_gen.py --aspect_ratio` |
+| `status` | yes | `Pending` for new entries — CLI flips to `Generated` / `Failed` |
+| `purpose` | no | Which slide / what function (audit only) |
+| `type` | no | `Background` / `Photography` / `Illustration` / `Diagram` / `Decorative` |
+| `image_size` | no | `512px` / `1K` / `2K` / `4K`; overrides CLI `--image_size` |
+| `alt_text` | no | Caption for accessibility |
+| `model` | no | Per-entry model override |
 
 ### 1.2 Prompt Components
 
@@ -97,7 +92,7 @@ Image 3 prompt: [Deck Style Anchor], growth chart with upward trending line...
 
 **Exception**: Background images may replace style keywords with `background`, `backdrop`, `negative space for text overlay` while keeping the same color directive. This ensures color consistency without compromising background functionality.
 
-**Rule**: Define the Deck Style Anchor once in the prompt document header (Section 4), then reference it in every individual prompt.
+**Rule**: Set `deck_style_anchor` once at the manifest's top level (§4), then prepend its text to every `items[].prompt` value.
 
 ---
 
@@ -188,24 +183,27 @@ For each image with `Acquire Via: ai` and `Status: Pending`:
 2. **Understand purpose** → Which page? What function?
 3. **Analyze the Reference field** → User's intent description
 4. **Apply type-specific key points** → Reference §2's table for that type
-5. **Generate optimized prompt** → Use the §1.1 standard output format
-6. **Save prompt document** → **Must** write to `project/images/image_prompts.md`
+5. **Generate optimized prompt** → §1.1 schema; prepend the §1.6 Deck Style Anchor
+6. **Save manifest** → **Must** write to `project/images/image_prompts.json` with `status: "Pending"` for every new entry
+7. **Render Markdown sidecar** → **Must** run `python3 scripts/image_gen.py --render-md project/images/image_prompts.json` to produce the read-only `image_prompts.md` view
 
-> `image_prompts.md` is human-readable; each `### Image N:` block is paste-ready for ChatGPT / Gemini / Midjourney. See §3.2 Offline Manual Mode for the handoff.
+**Hard rule**: `image_prompts.md` is auto-generated. Never hand-edit it — re-run `--render-md` (or `--manifest`, which re-renders on completion) to refresh.
+
+> The JSON manifest is machine-consumed by `image_gen.py --manifest`. The Markdown sidecar is the human-readable / paste-ready fallback used in Offline Manual Mode (§3.2).
 
 ### 3.2 Image Generation Phase
 
-> Prerequisite: §3.1 must be complete; `images/image_prompts.md` must exist.
+> Prerequisite: §3.1 must be complete; `images/image_prompts.json` must exist and validate.
 
 #### Path Selection (Deterministic)
 
-C (AI-generated) supports three implementation modes sharing one `image_prompts.md` source:
+C (AI-generated) supports three implementation modes sharing one `image_prompts.json` source:
 
 | Trigger | Mode | Mechanism |
 |---|---|---|
-| **Default** — `IMAGE_BACKEND` configured | **Path A**: `image_gen.py` CLI | Agent runs the script; outputs land at `project/images/<filename>` |
+| **Default** — `IMAGE_BACKEND` configured | **Path A**: `image_gen.py --manifest` | One command runs the whole manifest with concurrency; status writes back per item |
 | **Path A unavailable/fails OR User explicitly names host tool** | **Path B**: Host-native tool | Agent invokes the host's image capability; outputs land at `project/images/<filename>` |
-| **Both Path A and Path B fail/unavailable** | **Offline Manual Mode** | Agent writes prompts to `image_prompts.md`; user generates externally and places files at `project/images/<filename>` |
+| **Both Path A and Path B fail/unavailable** | **Offline Manual Mode** | Manifest stays on disk; user generates externally from `items[].prompt` and places files at `project/images/<filename>` |
 
 **Selection logic** (automatic, no user prompting):
 
@@ -219,26 +217,29 @@ C (AI-generated) supports three implementation modes sharing one `image_prompts.
 
 > All three modes share one output contract: file at `project/images/<filename>`. Step 6 SVG references are mode-agnostic.
 
-#### Path A — `image_gen.py` CLI (Default)
+#### Path A — `image_gen.py --manifest` (Default)
 
 ```bash
-python3 scripts/image_gen.py "your prompt" \
-  --aspect_ratio 16:9 --image_size 1K \
-  --output project/images --filename cover_bg
+python3 scripts/image_gen.py \
+  --manifest project/images/image_prompts.json \
+  --output project/images
 ```
+
+The CLI iterates `items[]` with adaptive concurrency, writes `status` back per item, and is **idempotent**: re-running only re-processes entries whose status is `Pending` or `Failed`.
 
 **Parameters**:
 
 | Parameter | Short | Description | Default |
-|-----------|-------|-------------|---------|
-| `prompt` | - | Prompt (positional arg) | - |
-| `--aspect_ratio` | - | Image aspect ratio | `1:1` |
-| `--image_size` | - | Size (`1K`/`2K`/`4K`) | `1K` |
-| `--output` | `-o` | Output directory | Current directory |
-| `--filename` | `-f` | Output filename (no extension) | Auto-named |
-| `--backend` | `-b` | Override backend (see `--list-backends` for options) | None |
-| `--model` | `-m` | Model name | Backend default |
-| `--list-backends` | - | Print support tiers and exit | `false` |
+|---|---|---|---|
+| `--manifest` | - | Path to `image_prompts.json` | — |
+| `--concurrency` | - | Max concurrent requests; halves on rate-limit, min 1 | `IMAGE_CONCURRENCY` env or `3` |
+| `--image_size` | - | Default size (`512px`/`1K`/`2K`/`4K`); per-item `image_size` wins | `1K` |
+| `--output` | `-o` | Output directory | Manifest's parent dir |
+| `--backend` | `-b` | Override `IMAGE_BACKEND` for this run | env |
+| `--model` | `-m` | Default model; per-item `model` wins | Backend default |
+| `--list-backends` | - | Print support tiers and exit | — |
+
+> The single-image form `image_gen.py "prompt" --filename ...` is preserved for ad-hoc one-offs (re-rolling a single image) but is no longer the primary path.
 
 **Configuration sources**:
 - Current process environment variables
@@ -251,6 +252,7 @@ Precedence:
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `IMAGE_BACKEND` | Required | Backend identifier; run `image_gen.py --list-backends` for the current set |
+| `IMAGE_CONCURRENCY` | Optional | Manifest-mode default concurrency (CLI `--concurrency` wins) |
 | `{PROVIDER}_API_KEY` | Required | Provider-specific API key, e.g. `GEMINI_API_KEY`, `ZHIPU_API_KEY` |
 | `{PROVIDER}_BASE_URL` | Optional | Provider-specific custom endpoint |
 | `{PROVIDER}_MODEL` | Optional | Provider-specific model override |
@@ -263,16 +265,19 @@ Precedence:
 
 **Support tiers (recommended usage)**: Core / Extended / Experimental. Run `image_gen.py --list-backends` for the current assignments.
 
-**Generation pacing (mandatory)**:
-- Execute only one generation command at a time; wait for file confirmation before the next
-- Recommend 2-5 second intervals between images to avoid concurrency failures
+**Concurrency (manifest mode)**:
+- Default 3 concurrent requests, halves on the first rate-limit response, minimum 1 (= serial fallback)
+- Rate-limited items requeue automatically; per-item failures are recorded with `last_error` and skipped
+- Interrupting mid-run is safe — completed items keep `status: Generated` and are skipped on re-run
+- On normal completion the Markdown sidecar is re-rendered automatically; if the run is interrupted, run `--render-md` manually to refresh the sidecar
 
 #### Path B — Host-Native Image Tool (On Explicit User Request)
 
 Triggered only when the user explicitly asks the skill to use the host's built-in image generation (e.g. Codex, Antigravity, or any other host that provides a native image tool).
 
-- Agent invokes the host's native image tool directly; prompts come from the same `image_prompts.md`
+- Agent invokes the host's native image tool directly; prompts come from `items[].prompt`
 - Outputs **must** land at `project/images/<filename-from-resource-list>` with dimensions matching the Image Resource List
+- After each placement, set the corresponding item's `status` to `Generated` in the manifest
 - Executor downstream is path-agnostic — no spec change required between Path A and Path B
 
 #### Offline Manual Mode (C's third implementation mode)
@@ -281,12 +286,12 @@ Triggered only when the user explicitly asks the skill to use the host's built-i
 
 **Workflow** (no user prompting; system enters this mode automatically):
 
-1. Verify `images/image_prompts.md` was generated in §3.1
-2. Set `Status: Needs-Manual` on every affected ai row per [`image-base.md`](./image-base.md) §6
+1. Verify `images/image_prompts.json` was written in §3.1
+2. Set `status: "Needs-Manual"` on every affected item per [`image-base.md`](./image-base.md) §6
 3. Continue to Step 6 — SVG references `images/<filename>` optimistically; Step 7 entry verifies presence
 4. Print one consolidated handoff to the user:
    - Filenames awaiting manual generation
-   - Pointer to `images/image_prompts.md`: each `### Image N:` block is a paste-ready prompt for ChatGPT / Gemini / Midjourney
+   - Pointer to `images/image_prompts.md` (paste-ready `### Image N:` block per item) or `image_prompts.json` (`items[].prompt`)
    - Target placement: `project/images/<filename>` matching the resource list exactly
    - Resume command: re-run Step 7 once all expected files exist
 
@@ -315,54 +320,38 @@ If Path A's backend fails twice in a row:
 
 ---
 
-## 4. Prompt Document Template
+## 4. Manifest Template
 
-Use the following structure when creating `project/images/image_prompts.md`:
+Write `project/images/image_prompts.json` with this shape. Top-level fields are audit-only; `items[]` is the machine contract.
 
-```markdown
-# Image Generation Prompts
-
-> Project: {project_name}
-> Generated: {date}
-> Color scheme: Primary {#HEX} | Secondary {#HEX} | Accent {#HEX}
-> Deck Style Anchor: {15–25 word prefix per §1.6}
-
----
-
-## Image List Overview
-
-| # | Filename | Type | Dimensions | Status |
-|---|----------|------|-----------|--------|
-| 1 | cover_bg.png | Background | 1920x1080 | Pending |
-
----
-
-## Detailed Prompts
-
-### Image 1: cover_bg.png
-
-| Attribute | Value |
-|-----------|-------|
-| Purpose | Cover background |
-| Type | Background |
-| Dimensions | 1920x1080 (16:9) |
-| Original description | Modern tech abstract background, deep blue gradient |
-
-**Prompt**:
-[Deck Style Anchor], Abstract futuristic background with flowing digital waves...
-
-**Alt Text**:
-> Modern tech abstract background with deep blue gradient, digital waves, and particle effects
-
----
-
-## Usage Instructions
-
-1. Copy the "Prompt" above into an AI image generation tool
-2. Recommended platforms: gpt-image-2 / Midjourney / DALL-E 3 / Gemini / Stable Diffusion
-3. Rename generated images to the corresponding filenames
-4. Place in the `images/` directory
+```json
+{
+  "project": "{project_name}",
+  "generated_at": "{ISO-8601 date}",
+  "color_scheme": {
+    "primary": "#1A3A5C",
+    "secondary": "#F8F9FA",
+    "accent": "#E8A838"
+  },
+  "deck_style_anchor": "{15–25 word prefix per §1.6}",
+  "items": [
+    {
+      "filename": "cover_bg.png",
+      "purpose": "Cover background (Slide 01)",
+      "type": "Background",
+      "aspect_ratio": "16:9",
+      "image_size": "2K",
+      "prompt": "{deck_style_anchor}, abstract futuristic background with flowing digital waves, deep navy gradient #1A3A5C to midnight, soft particle accents, clean center for text overlay, cinematic, 4K",
+      "alt_text": "Modern tech abstract background with deep blue gradient and digital waves",
+      "status": "Pending"
+    }
+  ]
+}
 ```
+
+**Field reference**: see §1.1 for required vs optional. The CLI rewrites each item's `status` (and adds `last_error` on failure) — do not hand-edit those while a run is in flight.
+
+**Paste-ready for manual mode**: each `items[].prompt` is a complete, self-contained prompt; copy it directly into ChatGPT / Gemini / Midjourney when running Offline Manual Mode (§3.2).
 
 ---
 
@@ -391,10 +380,9 @@ Diagnose the problem category and apply a targeted prompt fix:
 | Low quality | Image is blurry, has artifacts, or lacks detail | Add `highly detailed, sharp focus, professional quality, 8K resolution` |
 
 **Variant workflow**:
-1. Keep the original prompt as "Variant A" in `image_prompts.md`
-2. Create modified prompt as "Variant B" with targeted fixes from the table above
-3. If needed, create "Variant C" with a different stylistic approach
-4. Label all variants clearly so the user can compare results
+1. Set the unsatisfactory item's `status` back to `Pending` and update its `prompt` in place
+2. Re-run `image_gen.py --manifest` — only that item is re-processed
+3. If trying multiple stylistic approaches, append additional items with distinct filenames (e.g. `cover_bg_v2.png`) rather than overwriting
 
 ---
 
@@ -403,4 +391,4 @@ Diagnose the problem category and apply a targeted prompt fix:
 - Generating prompts for `web` rows — those go through [`image-searcher.md`](./image-searcher.md)
 - Brand names or HEX codes inside the subject description (degrades output)
 - Mixed Deck Style Anchors across images in the same deck (breaks coherence)
-- Placing an image without updating `image_prompts.md` and the resource list status
+- Placing an image without updating its `image_prompts.json` `status` and the resource list status

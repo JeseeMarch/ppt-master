@@ -235,7 +235,7 @@ Baseline choice follows **content density**, not style. Common: `18px` (dense) /
 |---|---|---|
 | **Path A** | `IMAGE_BACKEND` configured (default) | `image_gen.py` runs in Step 5 |
 | **Path B** | User explicitly names host's image tool (Codex / Antigravity) | Host-native generation |
-| **Offline Manual** | Path A unavailable AND Path B not in use | Prompts written to `images/image_prompts.md`; user generates externally and places files in `project/images/` |
+| **Offline Manual** | Path A unavailable AND Path B not in use | Prompts written to `images/image_prompts.json`; user generates externally and places files in `project/images/` |
 
 Selection is automatic in Step 5 (A → B → Manual). Detailed contract: [`image-generator.md`](./image-generator.md) §3.2.
 
@@ -336,38 +336,46 @@ Side-by-side only: container ratio must match image ratio. Hero / atmosphere / a
 
 > **Pipeline handoff**: When C) AI generation is selected, Image_Generator consumes `Pending` rows and updates them to `Generated` or `Needs-Manual` before Executor proceeds. Status names are defined in [`svg-image-embedding.md`](svg-image-embedding.md).
 
-### Visualization Reference (Non-blocking — Strategist recommends, no user confirmation needed)
+### Template Match — Visualization + Structural Patterns (Non-blocking — Strategist recommends, no user confirmation needed)
 
-When content outline pages involve **data visualization or infographic-style structured information design** (comparisons, trends, proportions, KPIs, flows, timelines, org structures, strategic frameworks, etc.), Strategist should select appropriate visualization types from the built-in template library.
+The catalog covers **both data charts and structural information designs**. A "match" is not limited to numeric pages — any page whose content shape matches a `Pick for ...` clause is a candidate:
+
+- **Data-type pages**: comparisons, trends, proportions, KPIs, financials, rankings, distributions, conversion funnels
+- **Structural-type pages**: team rosters, agendas, principles & values, methodology phases, customer journey, capability maps, OKR cascades, roadmaps, strategic frameworks (SWOT / BCG / PEST / Porter's Five Forces / Value Chain — matched via `quadrant_text_bullets`, `quadrant_bubble_scatter`, `vertical_pillars`, `hub_inward_arrows`, `chevron_chain_with_tail` respectively)
+
+The most common Strategist failure mode is missing the structural half — treating "chart" as "numeric chart only" and leaving team / agenda / principles / journey pages as text-only when a template would fit. Read the catalog with both lenses.
 
 > **Reading is mandatory; the catalog is a starting point, not a copy target.**
-> - Fully read `templates/charts/charts_index.json` **before drafting the Eight Confirmations** — the read happens up front, not when you sit down to write Section VII. Each `summary` is a selection rule (`"Pick for … Skip if …"`), not a description.
+> - Fully read `templates/charts/charts_index.json` **before drafting the Eight Confirmations** — the read happens up front, not when you sit down to write Section VII. The file contains `meta` + `charts.<key>.summary` only; each `summary` is a selection rule (`"Pick for … Skip if …"`), not a description. There is **no category, quickLookup, or keyword index** — selection is done by semantically matching each page's content shape against all 71 summaries in one pass.
 > - Not every page needs a chart. When a page's information structure matches a catalog entry, **use that template as a structural starting point** — keep the visualization type and core layout logic, then adapt composition, density, color, decoration, and accompanying elements to fit this deck's content and visual tone. Free adjustment is encouraged; what is forbidden is (a) generating without reading the catalog, and (b) blind verbatim mimicry that ignores the page's actual content weight.
 >
 > **Workflow**:
-> 1. Match each page against `summary` / `keywords` across all entries; use `quickLookup` for cross-check.
+> 1. Read all 71 summaries; for each page, identify the Pick clause that matches the page's content shape AND does not match any Skip clause.
 > 2. Prefer specificity (`vertical_list` over generic `numbered_steps`).
 > 3. One primary visualization per page; a supporting layout may accompany it.
 > 4. List selections in Design Spec section VII; section IX only notes the visualization type name per page.
 >
-> **Read-audit (mandatory, written at the top of section VII)** — designed to make fabrication impossible:
-> ```
-> Catalog read: <N> templates / <M> categories
+> **Source vocabulary mismatch** — the catalog is in English. When source content uses Chinese / industry jargon ("中台", "架构图", "述职", "管道", "前后端"), translate the intent first, then match against summaries. The catalog deliberately keeps no keyword index — full-read forces semantic matching rather than lexical grep.
 >
-> Per-page selection (one row per viz page):
->   P03 bar_chart      | summary-quote: "<paste the first sentence of the entry's `summary` field, verbatim>"
->   P07 line_chart     | summary-quote: "<verbatim first sentence>"
->   P11 pie_chart      | summary-quote: "<verbatim first sentence>"
->
-> Runners-up considered (3 entries minimum, drawn from real second-best matches in this deck):
->   <key_A> | rejected for P03: <reason citing this deck's specifics>
->   <key_B> | rejected for P07: <reason>
->   <key_C> | rejected for P11: <reason>
+> **Read-audit (mandatory, section VII format)** — single combined table; `summary-quote` column is the anti-fabrication audit, `path` + `usage` serve Executor lookup. Format defined in [`templates/design_spec_reference.md`](../templates/design_spec_reference.md) §VII:
 > ```
-> The `summary-quote` must be copy-pasted from `charts_index.json` — paraphrasing or summarizing breaks the audit. Every `<key_*>` and selected key must `grep` cleanly inside `charts_index.json` (so misspelled or invented keys fail). If fewer than 3 visualization pages exist, list what exists and note "fewer than 3 viz pages"; runners-up still required for each page that does exist.
+> Catalog read: 71 templates
+>
+> | Page | Template      | Path                              | Summary-quote (verbatim) | Usage |
+> | ---- | ------------- | --------------------------------- | ------------------------ | ----- |
+> | P03  | bar_chart     | templates/charts/bar_chart.svg    | "<verbatim first sentence>" | <intent> |
+> | P07  | line_chart    | templates/charts/line_chart.svg   | "<verbatim first sentence>" | <intent> |
+> | P11  | pie_chart     | templates/charts/pie_chart.svg    | "<verbatim first sentence>" | <intent> |
+>
+> Runners-up considered (3 entries minimum, drawn from real second-best matches):
+> - <key_A> | rejected for P03: <reason citing this deck's specifics>
+> - <key_B> | rejected for P07: <reason>
+> - <key_C> | rejected for P11: <reason>
+> ```
+> The `summary-quote` must be copy-pasted from `charts_index.json` — paraphrasing or summarizing breaks the audit. Every template name listed (selected or rejected) must `grep` cleanly inside `charts_index.json` (so misspelled or invented keys fail). If fewer than 3 visualization pages exist, list what exists and note "fewer than 3 viz pages"; runners-up still required for each page that does exist.
 >
 > **Fallback when no template fits**:
-> 1. Re-scan `categories` and `quickLookup` — concepts often live under non-obvious labels (e.g. "causal chain" → `process_flow` / `sankey_chart` under `process`).
+> 1. Re-read the full summary list with the page's intent re-stated in plain language — "non-obvious" matches often surface on the second pass (e.g. "causal chain" → `process_flow` or `sankey_chart`).
 > 2. If still no fit: data-driven content → table layout; conceptual/illustrative → "AI-generated image" (Image_Generator handles); structural → "custom layout".
 > 3. Mark the page `no-template-match` in section VII with the fallback chosen and why. Do NOT silently substitute a close-but-wrong chart.
 
