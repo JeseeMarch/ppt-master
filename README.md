@@ -194,6 +194,8 @@ To update later (Option A / B): `python3 skills/ppt-master/scripts/update_repo.p
 > ```
 >
 > Both install paths above only fetch the skill files (not the full repo); you still need to `pip install -r requirements.txt` from the installed location for the post-processing scripts to run.
+>
+> The marketplace/plugin package does not install a headless PowerPoint renderer. PPT Master previews slides through SVG/browser tooling and exports editable PPTX via OOXML; for final PowerPoint-render fidelity, open the exported deck in PowerPoint, Keynote, WPS, or LibreOffice.
 
 ### 4. Create
 

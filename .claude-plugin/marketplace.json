@@ -7,14 +7,14 @@
     "url": "https://github.com/hugohe3"
   },
   "metadata": {
-    "description": "PPT Master skill — AI generates natively editable PPTX from any document",
+    "description": "PPT Master skill - AI generates natively editable PPTX from any document",
     "version": "2.7.0"
   },
   "plugins": [
     {
       "name": "ppt-master",
       "source": "./",
-      "description": "Generate natively editable PPTX from PDF / DOCX / URL / Markdown — real DrawingML shapes, text boxes, charts, and animations. Note: this plugin ships only the skill files; you must also `pip install -r requirements.txt` from the project root for the Python post-processing scripts to run.",
+      "description": "Generate natively editable PPTX from PDF / DOCX / URL / Markdown - real DrawingML shapes, text boxes, charts, and animations. Note: this plugin ships only the skill files; you must also `pip install -r requirements.txt` from the project root for the Python post-processing scripts to run. It does not include or require a headless PowerPoint renderer; visual preview uses SVG/browser tooling, while final PPTX fidelity should be checked in PowerPoint, Keynote, WPS, or LibreOffice.",
       "author": {
         "name": "Hugo He",
         "email": "heyug3@gmail.com",
